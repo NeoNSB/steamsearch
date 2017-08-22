@@ -303,9 +303,9 @@ class UserResult:
         """
         self.id = data.get("steamid", "???")
         self.name = data.get("personaname", "???")
-        self.visibilityState = str(data.get("communityvisibilitystate", "???"))
-        self.profileStage = str(data.get("profilestate", "???"))
-        self.lastLogoff = str(data.get("lastlogoff", "???"))
+        self.visibilityState = data.get("communityvisibilitystate", "???")
+        self.profileState = data.get("profilestate", "???")
+        self.lastLogoff = data.get("lastlogoff", 1)
         self.url = data.get("profileurl", "???")
         self.avatar = data.get("avatar", "???")
         self.avatarMedium = data.get("avatarmedium", "???")
@@ -313,8 +313,10 @@ class UserResult:
         self.personaState = data.get("personastate", "???")
         self.realName = data.get("realname", "???")
         self.clan = data.get("primaryclanid", "???")
-        self.created = str(data.get("timecreated", "???"))
-        self.country = data.get("loccountrycode", "???")
+        self.created = data.get("timecreated")
+        self.country = data.get("loccountrycode")
+        self.statecode = data.get('locstatecode')
+
 
 
 class UserGame:
@@ -656,6 +658,29 @@ def get_user(steamid, timeout=10):
                     return UserResult(player)
     return None
 
+@asyncio.coroutine
+def get_user_level(steamid, timeout=10):
+    """Gets a users level
+
+    Args:
+        steamid (str): The user's steamid
+        timeout (int, optional): The amount of time before aiohttp raises a timeout error
+    Returns:
+        a int User Level
+        """
+    if not is_integer(steamid):
+        steamid = yield from search_for_userid(steamid)
+    if steamid is not None:
+        _check_key_set()
+        with aiohttp.ClientSession() as session:
+            with aiohttp.Timeout(timeout):
+                resp = yield from session.get("http://api.steampowered.com/IPlayerService/GetSteamLevel/v1/?key=" + STEAM_KEY + "&steamid=" + steamid)
+                data = yield from resp.json()
+
+                if "response" in data and "player_level" in data["response"]:
+                    level = data['response']['player_level']
+                    return level
+    return None
 
 @asyncio.coroutine
 def get_user_library(steamid, timeout=10):
